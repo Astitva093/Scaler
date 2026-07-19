@@ -1,0 +1,42 @@
+export type Listing = {
+  id: number;
+  hostId: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  city: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  price: number;
+  cleaningFee: number;
+  serviceFeeRate: number;
+  rating: number;
+  reviewCount: number;
+  propertyType: string;
+  category: string;
+  guestCapacity: number;
+  bedrooms: number;
+  beds: number;
+  baths: number;
+  amenities: string[];
+  images: string[];
+  badge?: string | null;
+};
+
+export type Booking = {
+  id: number;
+  listingId: number;
+  guestId: number;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  nights: number;
+  subtotal: number;
+  cleaningFee: number;
+  serviceFee: number;
+  total: number;
+  status: string;
+  confirmationCode: string;
+  listing?: Listing;
+};
