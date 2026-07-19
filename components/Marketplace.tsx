@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { categories, seedListings } from "@/lib/seed";
 import type { Booking, Listing } from "@/lib/types";
 
@@ -24,7 +24,15 @@ function Header({ compact=false, onSearch }: { compact?:boolean; onSearch?: (val
   useEffect(()=>{
     if(compact)return;
     let frame=0;
-    const update=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>setIsScrolled(window.scrollY>72))};
+    const update=()=>{
+      cancelAnimationFrame(frame);
+      frame=requestAnimationFrame(()=>{
+        const scrollY=window.scrollY;
+        // Collapsing the header shortens the page. Keep a wide gap between the
+        // two thresholds so browser scroll anchoring cannot toggle it repeatedly.
+        setIsScrolled(current=>current ? scrollY>60 : scrollY>160);
+      });
+    };
     update();
     window.addEventListener("scroll",update,{passive:true});
     return()=>{cancelAnimationFrame(frame);window.removeEventListener("scroll",update)};
@@ -43,13 +51,13 @@ function Header({ compact=false, onSearch }: { compact?:boolean; onSearch?: (val
       {compact?<Link className="mini-search" href="/" aria-label="Search Airbnb stays">{miniSearch}</Link>:<button className="mini-search home-mini-search" type="button" aria-label="Expand search" aria-hidden={!isScrolled} tabIndex={isScrolled?0:-1} onClick={()=>window.scrollTo({top:0,behavior:"smooth"})}>{miniSearch}</button>}
       <div className="nav-actions"><Link className="host-link" href="/host">Airbnb your home</Link><button className="globe-btn" aria-label="Language and currency">◎</button><div className="profile-wrap"><button className="profile-btn" onClick={()=>setMenu(!menu)} aria-expanded={menu} aria-label="Open profile menu"><span>☰</span><span className="avatar">MK</span></button>{menu&&<div className="profile-menu"><strong>Demo account</strong><span className="menu-muted">Maya · Guest mode</span><Link href="/trips">My trips</Link><Link href="/wishlist">Wishlists</Link><hr/><Link href="/host">Switch to hosting</Link><span>Messages <em>Coming soon</em></span></div>}</div></div>
     </div>
-    {!compact&&<div className="search-wrap" aria-hidden={isScrolled} inert={isScrolled}><div className="search-bar" role="search">
-      <label className="search-field"><span className="search-label">Where</span><input className="search-input" value={where} onChange={(e)=>setWhere(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&onSearch?.(where)} placeholder="Search destinations" /></label>
+    {!compact&&<div className="search-wrap" aria-hidden={isScrolled} inert={isScrolled}><form className="search-bar" role="search" onSubmit={(event)=>{event.preventDefault();onSearch?.(where)}}>
+      <label className="search-field"><span className="search-label">Where</span><input className="search-input" value={where} onChange={(e)=>setWhere(e.target.value)} placeholder="Search destinations" /></label>
       <label className="search-field"><span className="search-label">Check in</span><input className="search-input" type="date" aria-label="Check in date" /></label>
       <label className="search-field"><span className="search-label">Check out</span><input className="search-input" type="date" aria-label="Check out date" /></label>
       <label className="search-field"><span className="search-label">Who</span><input className="search-input" type="number" min="1" max="16" placeholder="Add guests" /></label>
-      <button className="search-go" onClick={()=>onSearch?.(where)} aria-label="Search">⌕</button>
-    </div></div>}
+      <button className="search-go" type="submit" aria-label="Search">⌕</button>
+    </form></div>}
   </header>;
 }
 
@@ -71,12 +79,13 @@ export function HomeExplorer() {
   const [all, setAll] = useState<Listing[]>(seedListings);
   const [category, setCategory] = useState(""); const [query, setQuery] = useState(""); const [page, setPage] = useState(1);
   const [saved, setSaved] = useState<number[]>([]); const [filters, setFilters] = useState(false); const [type, setType] = useState(""); const [maxPrice, setMaxPrice] = useState(35000); const [toast,setToast]=useState("");
+  const resultsRef = useRef<HTMLDivElement>(null);
   const perPage=8;
   useEffect(()=>{ fetch("/api/listings?pageSize=24").then(r=>r.ok?r.json():Promise.reject()).then(d=>setAll(d.listings)).catch(()=>{}); fetch(`/api/favorites?userId=${CURRENT_GUEST}`).then(r=>r.json()).then(d=>setSaved(d.favorites.map((l:Listing)=>l.id))).catch(()=>{}); },[]);
   useEffect(()=>{ if(!toast)return; const t=setTimeout(()=>setToast(""),2400); return()=>clearTimeout(t); },[toast]);
   const filtered=useMemo(()=>all.filter(l=>{const hay=`${l.city} ${l.country} ${l.title} ${l.propertyType}`.toLowerCase(); return (!category||l.category===category)&&(!query||hay.includes(query.toLowerCase().trim()))&&(!type||l.propertyType===type)&&l.price<=maxPrice}),[all,category,query,type,maxPrice]);
   const pages=Math.max(1,Math.ceil(filtered.length/perPage)); const visible=filtered.slice((page-1)*perPage,page*perPage);
-  const doSearch=(value:string)=>{setQuery(value);setCategory("");setPage(1)};
+  const doSearch=(value:string)=>{setQuery(value.trim());setCategory("");setPage(1);requestAnimationFrame(()=>resultsRef.current?.scrollIntoView({behavior:"smooth",block:"start"}))};
   const toggleFavorite=async(id:number)=>{const was=saved.includes(id);setSaved(s=>was?s.filter(x=>x!==id):[...s,id]);await fetch("/api/favorites",{method:was?"DELETE":"POST",headers:{"content-type":"application/json"},body:JSON.stringify({userId:CURRENT_GUEST,listingId:id})}).catch(()=>{});setToast(was?"Removed from your wishlist":"Saved to your wishlist");};
   return <div className="site-shell"><Header onSearch={doSearch}/><Toast message={toast}/>
     <main className="main-content">
@@ -107,7 +116,7 @@ export function HomeExplorer() {
         </aside>
       </section>
       <div className="category-dock"><div className="categories" aria-label="Stay categories">{categories.map(([icon,name])=><button key={name} className={`category ${category===name?"active":""}`} onClick={()=>{setCategory(category===name?"":name);setPage(1)}}><span className="category-icon">{icon}</span><span className="category-name">{name}</span></button>)}</div><button className="filter-btn" onClick={()=>setFilters(true)}>☷ &nbsp; Filters</button></div>
-      <div className="explore-head"><div><p className="eyebrow">Handpicked for you</p><h1 className="explore-title">{query?`Stays around “${query}”`:category||"Places worth travelling for"}</h1></div><span className="result-note">{filtered.length} stays · Prices include fees</span></div>
+      <div className="explore-head" ref={resultsRef}><div><p className="eyebrow">Handpicked for you</p><h1 className="explore-title">{query?`Stays around “${query}”`:category||"Places worth travelling for"}</h1></div><span className="result-note">{filtered.length} stays · Prices include fees</span></div>
       <div className="listing-grid">{visible.map(l=><ListingCard key={l.id} listing={l} saved={saved.includes(l.id)} onFavorite={toggleFavorite}/>)}{!visible.length&&<div className="empty"><h2>No stays found</h2><p>Try another destination or loosen your filters.</p></div>}</div>
       {pages>1&&<div className="pagination"><button className="page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}>‹</button>{Array.from({length:pages},(_,i)=>i+1).map(p=><button key={p} className={`page-btn ${p===page?"active":""}`} onClick={()=>setPage(p)}>{p}</button>)}<button className="page-btn" disabled={page===pages} onClick={()=>setPage(p=>p+1)}>›</button></div>}
     </main><Footer/>

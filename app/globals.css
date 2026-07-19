@@ -2666,6 +2666,7 @@ h1, h2, h3, h4 {
 /* Airbnb-style home navbar collapse */
 .topbar {
   transition: box-shadow .32s ease, background-color .32s ease;
+  overflow-anchor: none;
 }
 
 .topbar.home-collapsed {
