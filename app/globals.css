@@ -2662,3 +2662,129 @@ h1, h2, h3, h4 {
     justify-self: start;
   }
 }
+
+/* Airbnb-style home navbar collapse */
+.topbar {
+  transition: box-shadow .32s ease, background-color .32s ease;
+}
+
+.topbar.home-collapsed {
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 8px 28px rgba(34,34,34,.10);
+}
+
+.nav-row {
+  transition: height .34s cubic-bezier(.2,.8,.2,1);
+}
+
+.brand {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.nav-tabs {
+  grid-column: 2;
+  grid-row: 1;
+  transition: opacity .2s ease, transform .32s cubic-bezier(.2,.8,.2,1), visibility .32s;
+}
+
+.nav-actions {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.search-wrap {
+  max-height: 110px;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0);
+  transform-origin: top center;
+  transition: max-height .34s cubic-bezier(.2,.8,.2,1), padding .34s cubic-bezier(.2,.8,.2,1), opacity .2s ease, transform .34s cubic-bezier(.2,.8,.2,1);
+}
+
+.topbar.home-collapsed .search-wrap {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  transform: translateY(-18px) scale(.96);
+  pointer-events: none;
+}
+
+.topbar.home-collapsed .nav-tabs {
+  opacity: 0;
+  transform: translateY(-10px) scale(.94);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.topbar.compact .nav-row,
+.topbar.home-collapsed .nav-row {
+  height: 80px;
+}
+
+.mini-search {
+  grid-column: 2;
+  grid-row: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity .22s ease .1s, transform .34s cubic-bezier(.2,.8,.2,1), visibility .34s, box-shadow .2s ease;
+}
+
+.mini-search:hover {
+  box-shadow: 0 12px 32px rgba(34,34,34,.14);
+}
+
+.home-mini-search {
+  opacity: 0;
+  transform: translateY(14px) scale(1.08);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.topbar.home-collapsed .home-mini-search {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.mini-home {
+  font-size: 17px;
+  line-height: 1;
+}
+
+@media (max-width: 720px) {
+  .topbar.compact .nav-row,
+  .topbar.home-collapsed .nav-row {
+    height: 72px;
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .mini-search {
+    justify-self: center;
+    padding-left: 13px;
+    gap: 7px;
+    font-size: 0;
+  }
+
+  .mini-search::before {
+    content: "Search stays";
+    font-size: 13px;
+  }
+
+  .mini-search i,
+  .mini-home {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar,
+  .nav-row,
+  .nav-tabs,
+  .search-wrap,
+  .mini-search {
+    transition: none;
+  }
+}
